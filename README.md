@@ -1,7 +1,5 @@
 # seata-nacos-spring-cloud-demo
 
-----------
-
 **分布式事务组件seata的使用demo，集成nacos、springboot、springcloud、mybatis-plus，数据库采用mysql**
 
 demo中使用的相关版本号，具体请看代码。如果搭建个人demo不成功，验证是否是由版本导致，由于目前这几个项目更新比较频繁，版本稍有变化便会出现许多奇怪问题
@@ -169,15 +167,15 @@ INSERT INTO seata_storage.storage_tbl (id, commodity_code, count) VALUES (2, 'pr
 
 ## 3. 测试
 
-1. 分布式事务成功
+1. 分布式事务成功，模拟正常下单、扣库存
 
-localhost:9091/order/placeOrder/commit   模拟正常下单、扣库存
+   localhost:9091/order/placeOrder/commit   
+
+2. 分布式事务失败，模拟下单成功、扣库存失败，最终同时回滚
+
+   localhost:9091/order/placeOrder/rollback 
 
 
-
-2. 分布式事务失败
-
-localhost:9091/order/placeOrder/rollback 模拟下单成功、扣库存失败，最终同时回滚
 
 
 
