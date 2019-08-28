@@ -10,7 +10,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-
+/**
+ * Program Name: seata-nacos-spring-cloud-demo
+ * <p>
+ * Description:
+ * <p>
+ *
+ * @author zhangjianwei
+ * @version 1.0
+ * @date 2019/8/28 4:05 PM
+ */
 @Service
 public class OrderService {
 
@@ -42,7 +51,6 @@ public class OrderService {
         storageFeignClient.deduct(commodityCode, count);
 
     }
-
 
 
     @Transactional(rollbackFor = Exception.class)

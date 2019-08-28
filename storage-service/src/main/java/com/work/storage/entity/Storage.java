@@ -4,6 +4,16 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+/**
+ * Program Name: seata-nacos-spring-cloud-demo
+ * <p>
+ * Description:
+ * <p>
+ *
+ * @author zhangjianwei
+ * @version 1.0
+ * @date 2019/8/28 4:05 PM
+ */
 @Data
 @Accessors(chain = true)
 @TableName("storage_tbl")

@@ -1,49 +1,97 @@
 # seata-nacos-spring-cloud-demo
 
+----------
 
+**分布式事务组件seata的使用demo，集成nacos、springboot、springcloud、mybatis-plus，数据库采用mysql**
 
+demo中使用的相关版本号，具体请看代码。如果搭建个人demo不成功，验证是否是由版本导致，由于目前这几个项目更新比较频繁，版本稍有变化便会出现许多奇怪问题
 
+* seata 0.8.0
+* spring-cloud-alibaba-seata 2.1.0.RELEASE
+* spring-cloud-starter-alibaba-nacos-discovery  0.2.1.RELEASE
+* springboot 2.0.6.RELEASE
+* springcloud Finchley.RELEASE
 
-undolog 表
+----------
 
-~~~sql
--- 注意此处0.3.0+ 增加唯一索引 ux_undo_log
-CREATE TABLE `undo_log` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `branch_id` bigint(20) NOT NULL,
-  `xid` varchar(100) NOT NULL,
-  `context` varchar(128) NOT NULL,
-  `rollback_info` longblob NOT NULL,
-  `log_status` int(11) NOT NULL,
-  `log_created` datetime NOT NULL,
-  `log_modified` datetime NOT NULL,
-  `ext` varchar(100) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `ux_undo_log` (`xid`,`branch_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+## 1. 服务端配置
+
+### 1.1 Nacos-server
+
+版本为nacos-server-1.1.3，demo采用本地单机部署方式，请参考 [Nacos 快速开始](https://nacos.io/zh-cn/docs/quick-start.html)
+
+### 1.2 Seata-server
+
+seata-server为release版本0.8.0，demo采用本地单机部署，从此处下载 [https://github.com/seata/seata/releases](https://github.com/seata/seata/releases) 并解压
+
+#### 1.2.1 修改conf/registry.conf 配置
+
+设置type、设置serverAddr为你的nacos节点地址。
+
+**注意这里有一个坑，serverAddr不能带‘http://’前缀**
+
+~~~java
+registry {
+  # file 、nacos 、eureka、redis、zk、consul、etcd3、sofa
+  type = "nacos"
+
+  nacos {
+    serverAddr = "192.168.21.89"
+    namespace = "public"
+    cluster = "default"
+  }
+}
+config {
+  # file、nacos 、apollo、zk、consul、etcd3
+  type = "nacos"
+  nacos {
+    serverAddr = "192.168.21.89"
+    namespace = "public"
+    cluster = "default"
+  }
+}
+
 ~~~
 
+#### 1.2.2 修改conf/nacos-config.txt 配置
 
+service.vgroup_mapping.${spring.application.name}-fescar-service-group=default，中间的${spring.application.name}替换为自己的应用服务名称，即每个springboot项目属性文件中的spring.application.name对应的值。
 
-创建数据库
+demo中有两个服务，分别是storage-service和order-service，所以配置如下
 
-~~~sql
-create database seata_nacos_spring_cloud;
-use seata_nacos_spring_cloud;
+~~~properties
+service.vgroup_mapping.storage-service-fescar-service-group=default
+service.vgroup_mapping.order-service-fescar-service-group=default
 ~~~
 
+对 **${spring.application.name}-fescar-service-group **加深一下印象，服务中的application.properties文件会使用它。
 
 
-~~~sql
-DROP TABLE IF EXISTS `storage_tbl`;
-CREATE TABLE `storage_tbl` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `commodity_code` varchar(255) DEFAULT NULL,
-  `count` int(11) DEFAULT 0,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY (`commodity_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+#### 1.3 启动seata-server
+
+**分两步，如下**
+
+~~~shell
+# 初始化seata 的nacos配置
+cd conf
+sh nacos-config.sh 192.168.21.89
+
+# 启动seata-server
+cd bin
+sh seata-server.sh -p 8091 -m file
+~~~
+
+----------
+
+## 2. 应用配置
+
+### 2.1 数据库初始化
+
+~~~SQL
+-- 创建 order库、业务表、undo_log表
+create database seata_order;
+use seata_order;
 
 DROP TABLE IF EXISTS `order_tbl`;
 CREATE TABLE `order_tbl` (
@@ -55,30 +103,81 @@ CREATE TABLE `order_tbl` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE TABLE `undo_log`
+(
+  `id`            BIGINT(20)   NOT NULL AUTO_INCREMENT,
+  `branch_id`     BIGINT(20)   NOT NULL,
+  `xid`           VARCHAR(100) NOT NULL,
+  `context`       VARCHAR(128) NOT NULL,
+  `rollback_info` LONGBLOB     NOT NULL,
+  `log_status`    INT(11)      NOT NULL,
+  `log_created`   DATETIME     NOT NULL,
+  `log_modified`  DATETIME     NOT NULL,
+  `ext`           VARCHAR(100) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ux_undo_log` (`xid`, `branch_id`)
+) ENGINE = InnoDB
+  AUTO_INCREMENT = 1
+  DEFAULT CHARSET = utf8;
 
-DROP TABLE IF EXISTS `account_tbl`;
-CREATE TABLE `account_tbl` (
+
+-- 创建 storage库、业务表、undo_log表
+create database seata_storage;
+use seata_storage;
+
+DROP TABLE IF EXISTS `storage_tbl`;
+CREATE TABLE `storage_tbl` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `user_id` varchar(255) DEFAULT NULL,
-  `money` int(11) DEFAULT 0,
-  PRIMARY KEY (`id`)
+  `commodity_code` varchar(255) DEFAULT NULL,
+  `count` int(11) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY (`commodity_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-~~~
+CREATE TABLE `undo_log`
+(
+  `id`            BIGINT(20)   NOT NULL AUTO_INCREMENT,
+  `branch_id`     BIGINT(20)   NOT NULL,
+  `xid`           VARCHAR(100) NOT NULL,
+  `context`       VARCHAR(128) NOT NULL,
+  `rollback_info` LONGBLOB     NOT NULL,
+  `log_status`    INT(11)      NOT NULL,
+  `log_created`   DATETIME     NOT NULL,
+  `log_modified`  DATETIME     NOT NULL,
+  `ext`           VARCHAR(100) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ux_undo_log` (`xid`, `branch_id`)
+) ENGINE = InnoDB
+  AUTO_INCREMENT = 1
+  DEFAULT CHARSET = utf8;
 
-
-
-conf配置
-注意数据源
-
-
-public Boolean placeOrder(String userId, String commodityCode, Integer count) {
-localhost:9091/order/placeOrder?userId=1&commodityCode=1&count=1
-
-
-
+-- 初始化库存模拟数据
 INSERT INTO seata_storage.storage_tbl (id, commodity_code, count) VALUES (1, 'product-1', 9999999);
 INSERT INTO seata_storage.storage_tbl (id, commodity_code, count) VALUES (2, 'product-2', 0);
+~~~
+
+### 2.2 应用配置
+
+见代码
+
+几个重要的配置
+
+1. 每个应用的resource里需要配置一个registry.conf ，demo中与seata-server里的配置相同
+2. application.propeties 的各个配置项，注意spring.cloud.alibaba.seata.tx-service-group ，与nacos-config.txt 配置具有对应关系
+
+----------
+
+## 3. 测试
+
+1. 分布式事务成功
+
+localhost:9091/order/placeOrder/commit   模拟正常下单、扣库存
 
 
-retry time 配置
+
+2. 分布式事务失败
+
+localhost:9091/order/placeOrder/rollback 模拟下单成功、扣库存失败，最终同时回滚
+
+
+

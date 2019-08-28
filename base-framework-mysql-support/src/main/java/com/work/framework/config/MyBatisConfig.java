@@ -14,9 +14,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
 
-import javax.annotation.Resource;
 import javax.sql.DataSource;
-import java.util.Properties;
 
 /**
  * Program Name: base-framework-mysql-support
