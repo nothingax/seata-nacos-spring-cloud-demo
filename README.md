@@ -1,6 +1,6 @@
 # seata-nacos-spring-cloud-demo
 
-**分布式事务组件seata的使用demo，集成nacos、springboot、springcloud、mybatis-plus，数据库采用mysql**
+**分布式事务组件seata的使用demo，AT模式，集成nacos、springboot、springcloud、mybatis-plus，数据库采用mysql**
 
 demo中使用的相关版本号，具体请看代码。如果搭建个人demo不成功，验证是否是由版本导致，由于目前这几个项目更新比较频繁，版本稍有变化便会出现许多奇怪问题
 
@@ -53,16 +53,14 @@ config {
 
 #### 1.2.2 修改conf/nacos-config.txt 配置
 
-service.vgroup_mapping.${spring.application.name}-fescar-service-group=default，中间的${spring.application.name}替换为自己的应用服务名称，即每个springboot项目属性文件中的spring.application.name对应的值。
+service.vgroup_mapping.${your-service-gruop}=default，中间的${your-service-gruop}为自己定义的服务组名称，服务中的application.properties文件里配置服务组名称。
 
 demo中有两个服务，分别是storage-service和order-service，所以配置如下
 
 ~~~properties
-service.vgroup_mapping.storage-service-fescar-service-group=default
-service.vgroup_mapping.order-service-fescar-service-group=default
+service.vgroup_mapping.storage-service-group=default
+service.vgroup_mapping.order-service-group=default
 ~~~
-
-对 **${spring.application.name}-fescar-service-group **加深一下印象，服务中的application.properties文件会使用它。
 
 
 
@@ -161,7 +159,7 @@ INSERT INTO seata_storage.storage_tbl (id, commodity_code, count) VALUES (2, 'pr
 几个重要的配置
 
 1. 每个应用的resource里需要配置一个registry.conf ，demo中与seata-server里的配置相同
-2. application.propeties 的各个配置项，注意spring.cloud.alibaba.seata.tx-service-group ，与nacos-config.txt 配置具有对应关系
+2. application.propeties 的各个配置项，注意spring.cloud.alibaba.seata.tx-service-group 是服务组名称，与nacos-config.txt 配置的service.vgroup_mapping.${your-service-gruop}具有对应关系
 
 ----------
 
